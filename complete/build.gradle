@@ -28,7 +28,9 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
-    compile("org.springframework.boot:spring-boot-starter-data-gemfire")
+    compile("org.springframework.boot:spring-boot-starter")
     runtime("org.springframework.shell:spring-shell:1.0.0.RELEASE")
+    compile 'org.springframework.data:spring-data-geode:1.0.0.INCUBATING-RELEASE'
+    compile 'org.apache.geode:geode-lucene:1.0.0-incubating'
 }
 

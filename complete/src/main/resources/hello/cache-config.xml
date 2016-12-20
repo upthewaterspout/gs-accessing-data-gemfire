@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:gfe="http://www.springframework.org/schema/gemfire"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+	   	http://www.springframework.org/schema/gemfire http://www.springframework.org/schema/gemfire/spring-gemfire.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context.xsd
+">
+
+    <util:properties id="gemfire-props">
+        <prop key="name">DataGemFireApplication</prop>
+        <prop key="mcast-port">0</prop>
+        <prop key="log-level">config</prop>
+    </util:properties>
+
+    <bean id="pdxSerializer" class="org.springframework.data.gemfire.mapping.MappingPdxSerializer"/>
+
+    <gfe:cache properties-ref="gemfire-props"  pdx-serializer-ref="pdxSerializer"/>
+
+    <bean id="luceneService" class="org.apache.geode.cache.lucene.LuceneServiceProvider" factory-method="get">
+        <constructor-arg ref="gemfireCache"/>
+    </bean>
+
+    <bean id="index" class="org.springframework.beans.factory.config.MethodInvokingBean">
+        <property name="targetObject" ref="luceneService"/>
+        <property name="targetMethod" value="createIndex"/>
+        <property name="arguments">
+            <list>
+                <value>luceneIndex</value>
+                <value>hello</value>
+                <list>
+                    <value>name</value>
+                    <value>age</value>
+                </list>
+            </list>
+        </property>
+    </bean>
+
+
+    <gfe:partitioned-region id="hello" name="hello">
+    </gfe:partitioned-region>
+
+    <context:component-scan base-package="hello"/>
+
+</beans>

@@ -1,53 +1,25 @@
 package hello;
 
 import java.io.IOException;
-import java.util.Properties;
+import java.util.Collection;
 
+import org.apache.geode.cache.lucene.LuceneQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.gemfire.CacheFactoryBean;
-import org.springframework.data.gemfire.LocalRegionFactoryBean;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.gemfire.repository.config.EnableGemfireRepositories;
 
-import com.gemstone.gemfire.cache.GemFireCache;
+import org.apache.geode.cache.lucene.LuceneService;
 
-@Configuration
-@EnableGemfireRepositories
-@SuppressWarnings("unused")
 public class Application implements CommandLineRunner {
-
-    @Bean
-    Properties gemfireProperties() {
-        Properties gemfireProperties = new Properties();
-        gemfireProperties.setProperty("name", "DataGemFireApplication");
-        gemfireProperties.setProperty("mcast-port", "0");
-        gemfireProperties.setProperty("log-level", "config");
-        return gemfireProperties;
-    }
-
-    @Bean
-    CacheFactoryBean gemfireCache() {
-        CacheFactoryBean gemfireCache = new CacheFactoryBean();
-        gemfireCache.setClose(true);
-        gemfireCache.setProperties(gemfireProperties());
-        return gemfireCache;
-    }
-
-    @Bean
-    LocalRegionFactoryBean<String, Person> helloRegion(final GemFireCache cache) {
-        LocalRegionFactoryBean<String, Person> helloRegion = new LocalRegionFactoryBean<>();
-        helloRegion.setCache(cache);
-        helloRegion.setClose(false);
-        helloRegion.setName("hello");
-        helloRegion.setPersistent(false);
-        return helloRegion;
-    }
 
     @Autowired
     PersonRepository personRepository;
+
+    @Autowired
+    LuceneService luceneService;
 
     @Override
     public void run(String... strings) throws Exception {
@@ -64,29 +36,20 @@ public class Application implements CommandLineRunner {
         personRepository.save(bob);
         personRepository.save(carol);
 
-        System.out.println("Lookup each person by name...");
-        for (String name : new String[] { alice.name, bob.name, carol.name }) {
-            System.out.println("\t" + personRepository.findByName(name));
-        }
+        final LuceneQuery<Object, Object> query =
+            luceneService.createLuceneQueryFactory().create("luceneIndex", "hello", "bob", "name");
 
-        System.out.println("Adults (over 18):");
-        for (Person person : personRepository.findByAgeGreaterThan(18)) {
-            System.out.println("\t" + person);
-        }
-
-        System.out.println("Babies (less than 5):");
-        for (Person person : personRepository.findByAgeLessThan(5)) {
-            System.out.println("\t" + person);
-        }
-
-        System.out.println("Teens (between 12 and 20):");
-        for (Person person : personRepository.findByAgeGreaterThanAndAgeLessThan(12, 20)) {
-            System.out.println("\t" + person);
-        }
+        final Collection<Object> bobs = query.findValues();
+        System.out.println("Bobs are:" + bobs);
     }
 
     public static void main(String[] args) throws IOException {
-        SpringApplication application = new SpringApplication(Application.class);
+
+        SpringApplication application = new SpringApplication(Application.class, ApplicationConfiguration.class);
+
+        //Uncomment this line if you want to test with the xml configuration
+        //SpringApplication application = new SpringApplication(new ClassPathResource("hello/cache-config.xml"), Application.class);
+
         application.setWebEnvironment(false);
         application.run(args);
     }
